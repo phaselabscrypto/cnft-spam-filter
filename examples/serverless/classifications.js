@@ -25,34 +25,41 @@ async function handler(event) {
     );
   }
 
-  const addresses = [
-    ...new Set(event.queryStringParameters?.address.split(",")),
-  ].filter(Boolean);
+  const addresses = event.queryStringParameters?.address.split(",");
 
-  if (!addresses?.length) {
+  const tidyAdresses = [...new Set(addresses)].filter(Boolean);
+
+  if (!tidyAdresses?.length) {
     return jsonResponse(400, { error: "No addresses provided" });
   }
 
   try {
-    let classifications = [];
-
-    for (let chunk of chunks(addresses, DYNAMODB_CHUNK_SIZE)) {
-      const {
-        Responses: { classifications: items },
-      } = await dynamo.send(
-        new BatchGetCommand({
-          RequestItems: {
-            classifications: {
-              Keys: chunk.map((address) => ({ address })),
+    const classifications = await Promise.all(
+      chunks(tidyAdresses, DYNAMODB_CHUNK_SIZE).map(async (chunk) => {
+        const {
+          Responses: { classifications: items },
+        } = await dynamo.send(
+          new BatchGetCommand({
+            RequestItems: {
+              classifications: {
+                Keys: chunk.map((address) => ({ address })),
+              },
             },
-          },
-        }),
-      );
+          }),
+        );
 
-      classifications.push(...items);
-    }
+        return items;
+      }),
+    ).then((chunks) =>
+      Object.fromEntries(
+        chunks.flat().map((item) => [item.address, item.classification]),
+      ),
+    );
 
-    return jsonResponse(200, { classifications });
+    return jsonResponse(
+      200,
+      addresses.map((address) => classifications[address] || null),
+    );
   } catch (error) {
     console.log(error);
 
