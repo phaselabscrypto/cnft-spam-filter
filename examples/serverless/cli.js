@@ -13,6 +13,7 @@ program
   .option("-u, --base-url <string>", "base API URL to use")
   .action(async ({ address, baseUrl = "http://localhost:3000" }) => {
     const rpcUrl = process.env.RPC_URL;
+    const authToken = process.env.AUTH_TOKEN;
 
     // Get NFT data
     const { result: nftData } = await fetch(rpcUrl, {
@@ -55,6 +56,7 @@ program
     const result = await fetch(url, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
