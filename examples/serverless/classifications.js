@@ -3,6 +3,7 @@ const {
   DynamoDBDocumentClient,
   BatchGetCommand,
 } = require("@aws-sdk/lib-dynamodb");
+const { extractAuthToken, jsonResponse } = require("./utils");
 
 const client = new DynamoDBClient({ endpoint: process.env.DYNAMODB_ENDPOINT });
 const dynamo = DynamoDBDocumentClient.from(client);
@@ -15,20 +16,22 @@ function chunks(array, size) {
 
 const DYNAMODB_CHUNK_SIZE = 100;
 
-module.exports.handler = async (event) => {
+async function handler(event) {
+  if (extractAuthToken(event) !== process.env.AUTH_TOKEN) {
+    return jsonResponse(
+      401,
+      { error: "Unauthorized" },
+      { "WWW-Authenticate": "Bearer" },
+    );
+  }
+
   const addresses = [
     ...new Set(event.queryStringParameters?.address.split(",")),
   ].filter(Boolean);
 
   if (!addresses?.length) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "No addresses provided" }),
-    };
+    return jsonResponse(400, { error: "No addresses provided" });
   }
-
-  let statusCode;
-  let body;
 
   try {
     let classifications = [];
@@ -49,20 +52,12 @@ module.exports.handler = async (event) => {
       classifications.push(...items);
     }
 
-    statusCode = 200;
-    body = { classifications };
+    return jsonResponse(200, { classifications });
   } catch (error) {
     console.log(error);
 
-    statusCode = 500;
-    body = { error };
+    return jsonResponse(500, { error });
   }
+}
 
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  };
-};
+module.exports = { handler };

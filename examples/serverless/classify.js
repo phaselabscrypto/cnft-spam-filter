@@ -8,15 +8,21 @@ const {
   AnalyzeDocumentCommand,
 } = require("@aws-sdk/client-textract");
 const { extractAndClassify } = require("../../package");
+const { extractAuthToken, jsonResponse } = require("./utils");
 
 const client = new DynamoDBClient({ endpoint: process.env.DYNAMODB_ENDPOINT });
 const textract = new TextractClient({});
 
 const dynamo = DynamoDBDocumentClient.from(client);
 
-module.exports.handler = async (event) => {
-  let statusCode;
-  let body;
+async function handler(event) {
+  if (extractAuthToken(event) !== process.env.AUTH_TOKEN) {
+    return jsonResponse(
+      401,
+      { error: "Unauthorized" },
+      { "WWW-Authenticate": "Bearer" },
+    );
+  }
 
   try {
     const { nftData, proofLength } = JSON.parse(event.body);
@@ -68,20 +74,12 @@ module.exports.handler = async (event) => {
       return classification;
     })();
 
-    statusCode = 200;
-    body = { classification };
+    return jsonResponse(200, { classification });
   } catch (error) {
     console.log(error);
 
-    statusCode = 500;
-    body = { error };
+    return jsonResponse(500, { error });
   }
+}
 
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  };
-};
+module.exports = { handler };
