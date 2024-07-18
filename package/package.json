@@ -18,11 +18,5 @@
   "bugs": {
     "url": "https://github.com/solarnius/cnft-spam-filter/issues"
   },
-  "homepage": "https://github.com/solarnius/cnft-spam-filter#readme",
-  "dependencies": {
-    "@metaplex-foundation/mpl-bubblegum": "^3.1.2",
-    "@metaplex-foundation/umi": "^0.8.10",
-    "@metaplex-foundation/umi-bundle-defaults": "^0.8.10",
-    "tesseract.js": "^5.0.4"
-  }
+  "homepage": "https://github.com/solarnius/cnft-spam-filter#readme"
 }
