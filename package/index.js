@@ -1,95 +1,11 @@
-const { createWorker } = require("tesseract.js");
-const {
-  fetchMerkleTree,
-  mplBubblegum,
-} = require("@metaplex-foundation/mpl-bubblegum");
-const { createUmi } = require("@metaplex-foundation/umi");
-const { defaultPlugins } = require("@metaplex-foundation/umi-bundle-defaults");
 const defaultModel = require("./model.json");
 
-// Analyze tree to get proof depth
-async function getProofLength(treeId, rpcUrl) {
-  const umi = createUmi().use(defaultPlugins(rpcUrl)).use(mplBubblegum());
-
-  const tree = await fetchMerkleTree(umi, treeId);
-  const proofLength =
-    tree.treeHeader.maxDepth - (Math.log2(tree.canopy.length + 2) - 1);
-
-  return { proofLength };
-}
-
-// Image OCR
-// very slow, not recommended for production
-// should roll your own OCR
-async function getImageData(imageUrl) {
-  const worker = await createWorker("eng", 1, {
-    cachePath: "/tmp",
-  });
-  const ret = await worker.recognize(imageUrl);
-  const imageWords = ret.data.text.split(/\s+/);
-  const imageContainsUrl = imageWords.some((word) =>
-    word.match(/^[\S]+[.][\S]/)
-  );
-  worker.terminate();
-
-  return { imageWords, imageContainsUrl };
-}
-
-async function extractTokens(
-  address,
-  rpcUrl,
-  nftData = undefined,
-  proofLength = undefined
-) {
-  if (!address || !rpcUrl) {
-    throw new Error("address and rpcUrl are required");
-  }
-
-  if (!nftData) {
-    const response = await fetch(rpcUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: address,
-        method: "getAsset",
-        params: {
-          id: address,
-          displayOptions: {
-            showUnverifiedCollections: true,
-            showCollectionMetadata: true,
-            showFungible: false,
-            showInscription: false,
-          },
-        },
-      }),
-    });
-    const { result } = await response.json();
-    nftData = result;
-  }
-
-  const treeId = nftData.compression.tree;
-  const imageUrl = nftData.content.links.image;
-
-  // allow for tree data caching
-  let imageWords, imageContainsUrl;
-
-  if (!proofLength) {
-    [{ proofLength }, { imageWords, imageContainsUrl }] = await Promise.all([
-      getProofLength(treeId, rpcUrl),
-      getImageData(imageUrl),
-    ]);
-  } else {
-    let imageData = await getImageData(imageUrl);
-    imageWords = imageData.imageWords;
-    imageContainsUrl = imageData.imageContainsUrl;
-  }
+async function extractTokens(nftData, proofLength, imageWords) {
+  const imageContainsUrl = imageWords.some((word) => word.match(/\../));
 
   // Get the words from the NFT metadata
   const attributeWords = (nftData.content.metadata.attributes ?? []).flatMap(
-    (attr) => [...attr.value.split(/\s+/), ...attr.trait_type.split(/\s+/)]
+    (attr) => [...attr.value.split(/\s+/), ...attr.trait_type.split(/\s+/)],
   );
   const descriptionWords =
     nftData.content.metadata.description?.split(/\s+/) ?? "";
@@ -124,7 +40,7 @@ async function extractTokens(
 
   tokens.push(containsEmoji ? "containsEmoji" : "not_containsEmoji");
   tokens.push(
-    proofLength > 23 ? "proofLengthImpossible" : "not_proofLengthImpossible"
+    proofLength > 23 ? "proofLengthImpossible" : "not_proofLengthImpossible",
   );
   tokens.push(imageContainsUrl ? "imageContainsUrl" : "not_imageContainsUrl");
 
@@ -149,8 +65,8 @@ function classify(tokens, model = defaultModel) {
   return spam_likelihood > ham_likelihood ? "spam" : "ham";
 }
 
-async function extractAndClassify(address, rpcUrl) {
-  const tokens = await extractTokens(address, rpcUrl);
+async function extractAndClassify(nftData, proofLength, imageWords) {
+  const tokens = await extractTokens(nftData, proofLength, imageWords);
   const classification = classify(tokens);
 
   return { classification };
@@ -160,6 +76,4 @@ module.exports = {
   extractTokens,
   classify,
   extractAndClassify,
-  getProofLength,
-  getImageData,
 };
