@@ -19,7 +19,7 @@ async function handler(event) {
     );
   }
 
-  const addresses = event.queryStringParameters?.address?.split(",");
+  const addresses = JSON.parse(event.body);
 
   const tidyAdresses = [...new Set(addresses)].filter(Boolean);
 

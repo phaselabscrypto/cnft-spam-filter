@@ -76,7 +76,7 @@ functions:
     events:
       - httpApi:
           path: /classifications
-          method: get
+          method: post
 
 resources:
   Resources:

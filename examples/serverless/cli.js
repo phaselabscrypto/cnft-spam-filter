@@ -103,17 +103,17 @@ program
       }),
     }).then((res) => res.json());
 
-    const query = new URLSearchParams(
-      items
-        .flatMap((item) => [item.id, item.compression.tree])
-        .map((address) => ["address", address]),
-    );
-    const url = `${baseUrl}/classifications?${query}`;
+    const url = `${baseUrl}/classifications`;
 
     const classifications = await fetch(url, {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(
+        items.flatMap((item) => [item.id, item.compression.tree]),
+      ),
     })
       .then((response) => response.json())
       .then((json) => chunks(json, 2));
