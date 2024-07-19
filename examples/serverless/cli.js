@@ -103,9 +103,11 @@ program
       }),
     }).then((res) => res.json());
 
-    const query = new URLSearchParams({
-      address: items.flatMap((item) => [item.id, item.compression.tree]),
-    });
+    const query = new URLSearchParams(
+      items
+        .flatMap((item) => [item.id, item.compression.tree])
+        .map((address) => ["address", address]),
+    );
     const url = `${baseUrl}/classifications?${query}`;
 
     const classifications = await fetch(url, {

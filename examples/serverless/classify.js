@@ -46,7 +46,8 @@ async function handler(event) {
         FeatureTypes: ["TABLES"],
       });
       const textractResponse = await textract.send(textractCommand);
-      const text = textractResponse.Blocks.map((block) => block.Text).join(" ");
+      const text =
+        textractResponse.Blocks?.map((block) => block.Text)?.join(" ") ?? "";
 
       const imageWords = text.split(/\s+/).filter(Boolean);
 
