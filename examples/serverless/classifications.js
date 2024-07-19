@@ -3,16 +3,10 @@ const {
   DynamoDBDocumentClient,
   BatchGetCommand,
 } = require("@aws-sdk/lib-dynamodb");
-const { extractAuthToken, jsonResponse } = require("./utils");
+const { chunks, extractAuthToken, jsonResponse } = require("./utils");
 
 const client = new DynamoDBClient({ endpoint: process.env.DYNAMODB_ENDPOINT });
 const dynamo = DynamoDBDocumentClient.from(client);
-
-function chunks(array, size) {
-  return Array.apply(0, new Array(Math.ceil(array.length / size))).map(
-    (_, index) => array.slice(index * size, (index + 1) * size),
-  );
-}
 
 const DYNAMODB_CHUNK_SIZE = 100;
 
