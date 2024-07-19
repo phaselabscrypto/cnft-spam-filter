@@ -31,16 +31,36 @@ build:
       - '@aws-sdk/*'
 
 plugins:
+  - serverless-certificate-creator
+  - serverless-domain-manager
   - serverless-dotenv-plugin
   - serverless-dynamodb
   - serverless-offline
 custom:
+  customDomain:
+    domainName: ${self:custom.vars.domainName}
+    certificateName: ${self:custom.vars.domainName}
+    basePath: ''
+    createRoute53Record: true
+    apiType: http
+    endpointType: regional
+    stage: prod
+
+  customCertificate:
+    certificateName: ${self:custom.vars.domainName}
+    hostedZoneIds: ${self:custom.vars.hostedZoneId}
+    region: ${aws:region}
+    stage: prod
+    rewriteRecords: false
   dynamodb:
     stages:
       - dev
     start:
       inMemory: true
       migrate: true
+  vars:
+    domainName: filtoor.align.nexus
+    hostedZoneId: Z0243682Q9S0F7VQNK6J
 
 functions:
   classify:

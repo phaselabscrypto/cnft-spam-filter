@@ -18,6 +18,8 @@
     "@solana/web3.js": "^1.95.1",
     "aws-dynamodb-local": "^0.0.11",
     "commander": "^12.1.0",
+    "serverless-certificate-creator": "^1.6.0",
+    "serverless-domain-manager": "^7.3.8",
     "serverless-dotenv-plugin": "^6.0.0",
     "serverless-dynamodb": "^0.2.54",
     "serverless-offline": "^13.6.0"
